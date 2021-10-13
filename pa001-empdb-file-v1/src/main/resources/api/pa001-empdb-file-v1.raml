@@ -1,0 +1,24 @@
+#%RAML 1.0
+title: API To Save data from db  into local machine as CSV file
+baseUri: localhost:8081/api/prc/v1
+mediaType:
+  - application/json
+version: "1.0"
+protocols:
+  - HTTP
+/activeEmpDetails/{activeId}:
+  post:
+    headers:
+      txId:
+        example: "1245232442"
+        type: string
+    responses:
+      "200":
+        body:
+          example: |  
+              {"response":"file created"}
+      "404":
+        body:
+          example: |  
+              {"error":"Bad request"} 
+          

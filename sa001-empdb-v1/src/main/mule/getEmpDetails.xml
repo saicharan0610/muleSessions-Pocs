@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="1373f75a-1c2f-49b8-88cc-4aa9bd7645b2" >
+		<db:my-sql-connection host="mulesession.clgyo1odsgsn.us-east-1.rds.amazonaws.com" port="3306" user="admin" password="cBit2019" database="empSchema"/>
+	</db:config>
+	<sub-flow name="getEmpDetailsSub_Flow" doc:id="ee6433d6-4377-41fb-9ee2-b19d1e1f2b1a" >
+		<logger level="INFO" doc:name="infoLogger" doc:id="79667c2d-342e-44d1-8bdf-da7cedfc085b" message="Before select into DB"/>
+		<db:select doc:id="570fce10-7b7f-4668-a522-6b7efcc0cc6a" doc:name="selectFromEmpDetails" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from employeeDetails]]></db:sql>
+		</db:select>
+		<logger level="INFO" doc:name="infoLogger" doc:id="ee3385d4-0066-4b5a-b40c-e3356c487533" message="After db select"/>
+	</sub-flow>
+</mule>

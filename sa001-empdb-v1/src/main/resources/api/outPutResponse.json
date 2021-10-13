@@ -1,0 +1,24 @@
+[
+    {
+        "empId": "123",
+        "empName": "charan1",
+        "empRole": "Dev",
+        "emp_salary": "1",
+        "emp-country": "USA"
+    },
+        {
+        "empId": "12311111",
+        "empName": "charan1",
+        "empRole": "Dev",
+        "emp_salary": "1",
+        "emp-country": "USA"
+    },
+        {
+        "empId": "12313333",
+        "empName": "charan1",
+        "empRole": "Dev",
+        "emp_salary": "1",
+        "emp-country": "USA"
+    }
+
+]

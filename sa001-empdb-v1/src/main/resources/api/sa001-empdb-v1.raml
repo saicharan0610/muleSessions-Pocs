@@ -1,0 +1,21 @@
+#%RAML 1.0
+title: sa001-empDb-v1
+baseUri: localhost:8081/api/sys/v1
+mediaType:
+  - application/json
+version: "1.0"
+protocols:
+  - HTTP
+/empDetails:
+  get:
+    headers:
+      txId:
+        type: string
+        example: "1234455"
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include outPutResponse.json
+              
+          

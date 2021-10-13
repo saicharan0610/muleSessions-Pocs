@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:request-config name="sa001-databaseHttpCall" doc:name="HTTP Request configuration" doc:id="a67dd8a8-2e38-4a0a-8778-8325f15e120c" basePath="/api/sys/v1/" >
+		<http:request-connection host="localhost" port="8081" >
+		</http:request-connection>
+	</http:request-config>
+	<http:request-config name="sa001-fileCreateCall" doc:name="HTTP Request configuration" doc:id="bcfdc769-6af9-4168-8cd8-ac9c952b4237" basePath="/api/sys/v1/" >
+		<http:request-connection host="localhost" port="8082" >
+		</http:request-connection>
+	</http:request-config>
+	<sub-flow name="postActiveEmpIdDetailsSub_Flow" doc:id="312c5ee4-9022-45cc-9c24-a41c026c823d" >
+		<logger level="INFO" doc:name="infoLogger" doc:id="ac790d4c-6345-49d4-bf8e-0ba749805534" message="activeId :------#[vars.activeId]"/>
+		<http:request method="GET" doc:name="RequestCallToEmpDetails" doc:id="2207d9dd-1c9c-4410-972c-63f10dee321d" config-ref="sa001-databaseHttpCall" path="empDetails" sendCorrelationId="ALWAYS" correlationId="#[correlationId]" responseTimeout="300000000" target="empDetailsFromDb">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"txId" : "123"
+}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="infoLogger" doc:id="3f0a0b9c-c1b6-405b-80e0-19a510a512f9" message="log payload #[payload] and logging empDetails variable #[vars.empDetailsFromDb]"/>
+		<set-payload value="#[vars.empDetailsFromDb]" doc:name="setPayloadAsEmpDetailsFromDb" doc:id="805a830c-c7c3-4464-97ce-7c16d9e8ceb8" />
+		<ee:transform doc:name="filterActiveEmpId" doc:id="a41c0de5-ed10-4bdd-95ca-12098cfafea0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload filter ((item1, index) -> item1.empId == vars.activeId)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<http:request method="POST" doc:name="RequestCallToFileCreate" doc:id="7fa9be28-0395-453a-8386-952a30b3dd93" config-ref="sa001-fileCreateCall" path="createLocalCsvFile" sendCorrelationId="ALWAYS" correlationId="#[correlationId]" responseTimeout="30000000">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"txId" : "1223"
+}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="infoLogger" doc:id="e5e1b6a5-6f5e-4b55-abdd-1e341cead84f" message="response from file requestor #[payload]"/>
+	</sub-flow>
+</mule>

@@ -1,0 +1,24 @@
+#%RAML 1.0
+title: Create file in Local Machine
+mediaType:
+  - application/json
+protocols:
+  - HTTP
+baseUri: localhost:8081/api/sys/v1
+/createLocalCsvFile:
+  post:
+    headers:
+      txId:
+        example: Example
+        type: string
+    body:
+      example: !include inputRequest.json
+    responses:
+      "200":
+        body:
+          example:
+            strict: true
+            value:
+              response: file Created
+              DateTime: ""
+          type: object

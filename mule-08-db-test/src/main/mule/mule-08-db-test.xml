@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="0d22d591-6254-46f8-8b86-f9b42d0de4ae" basePath="/sys" >
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="a1563e27-4ba7-48a0-965b-764e7520ee62" >
+		<db:my-sql-connection host="mulesession.clgyo1odsgsn.us-east-1.rds.amazonaws.com" port="3306" user="admin" password="cBit2019" database="empSchema" />
+	</db:config>
+	<flow name="mule-08-db-testFlow" doc:id="bd840288-a3b5-49cf-8851-0556d187b6fc" >
+		<http:listener doc:name="Listener" doc:id="0b3e64d1-ccef-4fcf-9609-93e813debeee" config-ref="HTTP_Listener_config" path="/getEmpData/{empId}"/>
+		<logger level="INFO" doc:name="startInfoLogger" doc:id="fb0bf77a-6d11-4fae-ba95-05476f230643" message="This is First Logger paylload----: #[payload]   @@@"/>
+		<db:select doc:id="14f4dd6b-8430-4fd4-8abe-993f1fd2d891" config-ref="Database_Config" doc:name="selectFromEmpDetails">
+			<db:sql ><![CDATA[select * from employeeDetails]]></db:sql>
+		</db:select>
+		<logger level="INFO" doc:name="infoLogger" doc:id="846fa7c5-6f31-46b2-9437-06e29503b73f" message="This is second logger #[payload]"/>
+		<ee:transform doc:name="outputMessage" doc:id="b6c65fd7-eccd-45e1-816a-c1aec805cd48" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="mule-08-db-testFlow1" doc:id="4ba7610e-d701-4d0b-8658-95fc8d837248" >
+		<http:listener doc:name="Listener" doc:id="4a01be1c-1a51-450d-864e-8b7a7580b043" config-ref="HTTP_Listener_config" path="/postEmpData"/>
+		<logger level="INFO" doc:name="Logger" doc:id="c5e146aa-2179-4e31-a512-0c567a7a1378" message="This is first Logger #[payload]"/>
+		<set-variable value="#[[]]" doc:name="forLoop" doc:id="50da776d-8a69-48f5-a88f-15f1374751e0" variableName="forLoop"/>
+		<foreach doc:name="For Each" doc:id="1424e91d-79cb-4d3c-ae48-bf06ef8caf13" collection="#[payload]">
+			<logger level="INFO" doc:name="Logger" doc:id="e07fa57e-c836-4055-ae56-428301e80ffe" message="inside for #[payload]"/>
+			<db:insert doc:name="InsertIntoEmpDetails" doc:id="2839e09d-7c32-4d48-b802-44a0bcece625" config-ref="Database_Config">
+			<db:sql><![CDATA[#["INSERT INTO employeeDetails (empId,empName,empRole,empSalary,empCountry) VALUES (:i,:name,:role,:sal,:country)"]]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'i': payload.empId , 'name': payload.empName, 'role': payload.empRole, 'sal': payload.empSalary, 'country': payload.empCountry}]]]></db:input-parameters>
+		</db:insert>
+			<set-variable value="#[vars.forLoop + payload]" doc:name="forLoop" doc:id="e33c91b4-28d1-4ae8-8fc6-0076ba992752" variableName="forLoop" />
+			<logger level="INFO" doc:name="Logger" doc:id="478a3a7e-5d5e-457d-9c3c-24d5218e1d98" message="after db in for loop #[payload]"/>
+		</foreach>
+		<logger level="INFO" doc:name="Logger" doc:id="a7250c38-9df1-43aa-893c-045e81fba2f2" message="after loop #[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="30cfac4e-8c4f-4d64-b877-a6686e4d79bd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="mule-08-db-testFlow2" doc:id="32dc849d-9cb2-4331-9278-bcd57896417f" >
+		<http:listener doc:name="Listener" doc:id="3297ec34-1e00-4a00-94cf-f21fb71a9351" config-ref="HTTP_Listener_config" path="/getData/choice"/>
+		<logger level="INFO" doc:name="Logger" doc:id="5e6f0278-c0ad-45fd-a83b-5f1376ef63aa" message="#[attributes.headers.tableName]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="1c75b1a6-5f47-4b05-bdde-d7c5a956651c" />
+		<choice doc:name="Choice" doc:id="760267f3-2b59-4b3e-b505-6ab0032609da" >
+			<when expression='#[attributes.headers.tableName == "employeeDetails"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="2ad936f2-926c-4cb4-8e83-03b9c81a6407" message="select from emp details"/>
+				<db:select doc:name="Select" doc:id="cde34818-5613-4584-8a8a-6d03f68e50da" config-ref="Database_Config">
+					<db:sql ><![CDATA[select * from employeeDetails]]></db:sql>
+				</db:select>
+			</when>
+			<when expression='#[attributes.headers.tableName == "Customers"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="4c8e8272-3ba6-4295-b998-e6b670d2e463" message="select from customers"/>
+				<db:select doc:name="Select" doc:id="b5cef080-ae94-4d6c-8481-3bda1d32d593" config-ref="Database_Config">
+					<db:sql ><![CDATA[select * from Customers]]></db:sql>
+				</db:select>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="82e0ccaa-e25f-4ae5-88d5-c20740efb750" message="No Operation"/>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="f7c7b8ff-0d3e-4b09-9fae-b69c99408ca6">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="mule-08-db-testFlow3" doc:id="d8a46b48-d696-4731-b67c-ec82e2d9011b" >
+		<http:listener doc:name="Listener" doc:id="78657424-b10a-4504-865c-325845094826" config-ref="HTTP_Listener_config" path="/getData/scatterGather"/>
+		<logger level="INFO" doc:name="Logger" doc:id="6ddd1038-43c1-4eb3-84c2-83a07a5eec35" />
+		<scatter-gather doc:name="Scatter-Gather" doc:id="980cbeff-c68d-4aba-9aa6-2713402b84b1" >
+			<route >
+				<db:select doc:name="empSelect" doc:id="974d4293-f296-48b7-a90a-35bd81f05413" config-ref="Database_Config">
+					<db:sql ><![CDATA[select * from employeeDetails]]></db:sql>
+				</db:select>
+				<logger level="INFO" doc:name="Logger" doc:id="29dcea91-21e2-4b28-89f0-6f8641dff51c" message="First Logger #[payload]"/>
+			</route>
+			<route >
+				<try doc:name="Try" doc:id="5e942d5e-3407-4b95-8d9a-ca832d5afe72" >
+					<db:select doc:name="customerSelect" doc:id="d739e2d0-1a5d-4ca1-b2ad-7582f873ed4c" config-ref="Database_Config">
+					<db:sql><![CDATA[select * from Customer]]></db:sql>
+				</db:select>
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="1114cf6c-de24-4255-ab0f-5f4ead67d999" >
+							<ee:transform doc:name="Transform Message" doc:id="bad166a3-1d4a-4cf6-8ee1-a25e9f7727da" >
+								<ee:message >
+									<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"errorResponse": error.description
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</on-error-continue>
+					</error-handler>
+				</try>
+				<logger level="INFO" doc:name="Logger" doc:id="9382fba1-5be3-402c-bdc6-6431cb55e7a6" message="Second Logger #[payload]"/>
+			</route>
+		</scatter-gather>
+		<logger level="INFO" doc:name="Logger" doc:id="38fc4119-a8c3-4720-a46b-25790bd1af39" message="#[%dw 2.0 output application/json --- payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="f095f689-b29b-4a09-ab09-d4adc8069b4e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+flatten(payload."0"."payload" + payload."1"."payload")]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="9d7e64e9-1bee-4483-a540-2be0be57e971" type="MULE:COMPOSITE_ROUTING">
+				<ee:transform doc:name="Transform Message" doc:id="3bfdb11e-3911-4e17-849f-0571d9f7b78f" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"errorResponse": error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="9d648e3b-a112-4814-9515-7a642c20569f" type="ANY">
+				<ee:transform doc:name="Transform Message" doc:id="019854dd-5575-4eee-8104-65cae1b997fc" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"errorResponse": error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="mule-08-db-testFlow4" doc:id="2748ace0-4e37-4249-b6b1-8f3775b60544" >
+		<http:listener doc:name="Listener" doc:id="1fe1595c-1ad8-4cda-af5a-b9cdc5ff098d" config-ref="HTTP_Listener_config" path="/errorHandling">
+			<http:error-response >
+				<http:body ><![CDATA[#[payload]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="8f6815b0-6967-4101-90a6-7f9e5232dda4" message="This iis First Logger Before Error"/>
+		<flow-ref doc:name="Flow Reference" doc:id="00c4f1c4-2271-4239-a75d-8b5dd3ce2b01" name="mule-08-db-testSub_Flow"/>
+		<ee:transform doc:name="Transform Message" doc:id="72b6e539-b221-46b1-9b53-7cf2eacc692b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b68a4adb-a85d-458c-b5a2-45fdb174cacb" type="DB:CONNECTIVITY">
+				<logger level="INFO" doc:name="Logger" doc:id="4387617e-c0c1-4098-9acc-dd34af744106" />
+				<ee:transform doc:name="Transform Message" doc:id="420800b4-6192-4ba0-8c9e-95b48a848aa0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorResponse": error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3baf9c5a-eddf-43a1-9496-14b2fbd83fce" type="DB:BAD_SQL_SYNTAX">
+				<logger level="INFO" doc:name="Logger" doc:id="c3477660-01dc-4f5f-a670-3269955b2edb" />
+				<ee:transform doc:name="Transform Message" doc:id="6c6c1b22-8bd9-42f6-beaf-be6b7ba070f1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorResponse": error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="mule-08-db-testFlow5" doc:id="8d7046ab-9093-42e0-9a2a-a30aeeecc314" >
+		<logger level="INFO" doc:name="Logger" doc:id="254cb816-b241-4c66-9c37-ab9ebff38443" />
+		<db:select doc:name="Select" doc:id="28735e23-bf9e-405d-b92c-b87b1ab0b515" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from employeeDetai]]></db:sql>
+		</db:select>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="5500396f-1dde-4cf8-a53c-965d02c48dbe" type="DB:BAD_SQL_SYNTAX">
+				<ee:transform doc:name="Transform Message" doc:id="40dbcce9-78a9-4e17-adf1-13696f4dbdc0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorResponse": error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="48cac759-c560-41fc-9e0e-06845068e86a" />
+			</on-error-continue>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="09860626-c974-4fa7-9248-7406ef5a31e4" type="DB:CONNECTIVITY">
+				<ee:transform doc:name="Transform Message" doc:id="0e5a720e-048c-47f4-9f9d-ae17dc27e19d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorResponse": error.description
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="6c3eb66a-958f-4411-ab2a-24588a6e0668" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<sub-flow name="mule-08-db-testSub_Flow" doc:id="9110ba40-8da7-4c06-b9f3-88e3e7a51e63" >
+		<try doc:name="Try" doc:id="13eb624f-ea90-4e63-8d5c-cb8308935fb3" >
+			<db:select doc:name="Select" doc:id="36a0f811-a29d-4f05-97e4-2988868f699e" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from employeeDetai]]></db:sql>
+		</db:select>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="730c08fe-03b3-4ee9-9f6d-6dd0f033d1cd" type="DB:CONNECTIVITY">
+					<ee:transform doc:name="Transform Message" doc:id="e17e086b-0ed0-45a9-8277-5d05f1d97d2e" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorResponse": error.description
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-continue>
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="64941606-001d-40f8-a8f3-1708ee1e6373" type="DB:BAD_SQL_SYNTAX">
+					<ee:transform doc:name="Transform Message" doc:id="5b854c6b-d923-4430-992a-15a6a2956752" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorResponse": error.description
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<logger level="INFO" doc:name="Logger" doc:id="6fe8613d-2742-46a8-8ab2-8457b817de25" />
+	</sub-flow>
+</mule>

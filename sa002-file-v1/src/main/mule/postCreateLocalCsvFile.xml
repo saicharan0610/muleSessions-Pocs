@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<file:config name="File_Config" doc:name="File Config" doc:id="37d8f3e7-5b56-4957-92af-b9e179febb71" />
+	<sub-flow name="postCreateLocalCsvFileSub_Flow" doc:id="c04c7713-195e-4db2-95ac-52ba7974c74b" >
+		<logger level="INFO" doc:name="infoLogger" doc:id="dca6a90d-8e99-43ea-8b04-bf5bf4d6f0d3" message="This to check Json Payload ---#[payload]"/>
+		<ee:transform doc:name="jsonToCsv" doc:id="a5f838f2-9f4e-450e-ba60-0745349172a0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header=true
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:id="2c7e50f9-e4a1-495d-bdeb-81f2e2e8004f" doc:name="createLocalFile" config-ref="File_Config" path='#["/Users/charan/Desktop/Abhinav/activeEmpDetails_" ++ now() ++ ".csv"]' mode="APPEND"/>
+		<logger level="INFO" doc:name="infoLogger" doc:id="abf9b45f-fba2-44f8-a969-ade8a60e347b" message="created the file on local machine"/>
+	</sub-flow>
+</mule>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="e29f4c39-b6eb-411f-94cd-1b082c2ea2ed" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="b35cb0a4-4573-4284-bd11-0004fe2e030b" />
+	<flow name="batchprocessing-v1Flow" doc:id="2f54a215-2067-4022-a74e-bbf7ba591bdb" >
+		<http:listener doc:name="Listener" doc:id="3aaab639-ec57-41ab-9081-5e24bd8dd7d4" config-ref="HTTP_Listener_config" path="/batchJob"/>
+		<set-payload value='#[[1,2,3,"sai",4,5,"Charan"]]' doc:name="setPayload" doc:id="14e3ec05-13ae-41e5-96d5-743278f492ec" />
+		<logger level="INFO" doc:name="infoLogger" doc:id="438fd0c6-7231-49b9-824e-2e0fb86017d9" message="#[payload]"/>
+		<batch:job jobName="batchprocessing-v1Batch_Job" doc:id="3e4091e4-9f9a-4a24-bc14-1481bb86d9eb" maxFailedRecords="-1">
+			<batch:process-records >
+				<batch:step name="Batch_StepMulti10" doc:id="75dd9a4e-00f1-47b9-950d-c3ebc3d068bb" acceptPolicy="ALL">
+					<set-payload value="#[payload * 10]" doc:name="multipleBy*10" doc:id="d2987796-b1d3-4508-b13b-54508025f0e3" />
+					<logger level="INFO" doc:name="infoLogger" doc:id="c0f10790-23e5-4607-a690-4ea7b83c3938" message="This is payload : ------#[payload]"/>
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="1fd888ae-6ea0-4691-9c33-5aa1fcdc6b38" streaming="true">
+						<logger level="INFO" doc:name="infoLogger" doc:id="edcadc78-548f-4a84-ae7e-1574190fd2a7" message="#[%dw 2.0 output application/json --- payload]"/>
+					</batch:aggregator>
+				</batch:step>
+				<batch:step name="Batch_StepConcatString" doc:id="3ce6ba28-f61a-475c-9804-33fde536f1b8" acceptPolicy="ONLY_FAILURES">
+					<set-payload value='#[payload ++ "__This is String addition"]' doc:name="concatString" doc:id="853637c8-b450-46a6-821e-14273ba35b39" />
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="b2ae7d8e-50e5-4673-b2af-df9dd9d2a45f" size="2">
+						<logger level="INFO" doc:name="infoLogger" doc:id="acad7d96-3681-4cab-a226-55f83e5a71d2" message="#[%dw 2.0 output application/json --- payload]"/>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<logger level="INFO" doc:name="infoLogger" doc:id="391786bc-4399-45bc-9e9a-11590236f9bf" message="#[%dw 2.0 output application/json --- payload]"/>
+			</batch:on-complete>
+		</batch:job>
+		<ee:transform doc:name="outputMessage" doc:id="8d342232-5807-470f-907b-b1aa0ff111c6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="batchprocessing-v1Flow1" doc:id="39274bb8-0e3f-4e4d-9fdb-4908f828594a" >
+		<http:listener doc:name="Listener" doc:id="14835077-da7a-4caa-bcba-62d4bd5f05f2" config-ref="HTTP_Listener_config" path="/batchPoc"/>
+		<logger level="INFO" doc:name="Logger" doc:id="47c64a38-b41f-4c46-ad1d-60b5e9713b18" />
+		<file:read doc:name="Read" doc:id="5ce1bd0e-1c38-4b58-a3f5-ccf46a6b934f" config-ref="File_Config" path="/Users/charan/Downloads/annual-enterprise-survey-2020-financial-year-provisional-csv.csv"/>
+		<ee:transform doc:name="Transform Message" doc:id="e42ead8a-7c19-4eb9-9b10-36aef77dba7a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<batch:job jobName="batchprocessing-v1Batch_Job1" doc:id="41f97360-8af1-458f-a72d-beb58eccb3a9" maxFailedRecords="-1">
+			<batch:process-records >
+				<batch:step name="Batch_Step" doc:id="5b46ba71-5719-4082-a9ff-67f4a4a0e84a" acceptPolicy="ALL">
+					<choice doc:name="Choice" doc:id="e5b45d9c-c535-4508-9e56-1778f8501705" >
+						<when expression='#[payload.Variable_code == "H01"]'>
+							<logger level="INFO" doc:name="Logger" doc:id="f8acb902-1698-425b-9c5f-f4be6033709a" />
+							<raise-error doc:name="Raise error" doc:id="71c6b164-7d7a-4ee6-aa2c-f376cf0c1f56" type="HTTP1:CONNECTIVITY"/>
+						</when>
+						<otherwise >
+							<logger level="INFO" doc:name="Logger" doc:id="f6167c39-3d09-4a0b-8b85-b568a2b6ed64" />
+						</otherwise>
+					</choice>
+				</batch:step>
+				<batch:step name="Batch_Step1" doc:id="2b5d6175-b9bc-4a69-adf1-91783f420c87" acceptPolicy="ONLY_FAILURES">
+					<set-payload value='#["This is error Record"]' doc:name="Set Payload" doc:id="da644c00-e861-492b-bfa1-6ac09cfa98cf" />
+					<logger level="INFO" doc:name="Logger" doc:id="15726573-2159-4a33-8add-b3cfa6d7930d" message="#[payload]"/>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<logger level="INFO" doc:name="Logger" doc:id="bf8f458e-9016-4853-9ec6-0a0864c25a30" message="#[%dw 2.0 output application/json --- payload]"/>
+			</batch:on-complete>
+		</batch:job>
+	</flow>
+</mule>

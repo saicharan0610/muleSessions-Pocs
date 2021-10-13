@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:servicenow="http://www.mulesoft.org/schema/mule/servicenow" xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/servicenow http://www.mulesoft.org/schema/mule/servicenow/current/mule-servicenow.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6cbcc777-1db8-4e23-afb0-9805c5f30aaf" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="a26559af-a375-4ab3-a620-c4ca4082795b" >
+		<db:my-sql-connection host="mulesession.clgyo1odsgsn.us-east-1.rds.amazonaws.com" port="3306" user="admin" password="cBit2019" database="empSchema"/>
+	</db:config>
+	<configuration doc:name="Configuration" doc:id="9ac63083-ffca-47cb-ae79-ecb244a6d7b7" defaultErrorHandler-ref="mule-25-db-testError_Handler" />
+	<flow name="mule-25-db-testFlow" doc:id="590bd509-3217-4bff-9226-3d2e56475fab" >
+		<http:listener doc:name="Listener" doc:id="4ac53cdb-c577-4359-b335-e1d100ad4bc0" config-ref="HTTP_Listener_config" path="/getDbData"/>
+		<db:select doc:name="Select" doc:id="3a100b3a-3343-4c0a-afe4-69fed59945c3" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * from employeeDetails
+]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="19b38af7-2fb2-43b5-8275-44785adfb8d9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+
+    "empName": item.empName,
+    "empSalary":item.empSalary
+})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="mule-25-db-testFlow1" doc:id="3896fe28-0ab8-4fc9-bf7e-8a01ea2a26aa" >
+		<http:listener doc:name="Listener" doc:id="db5728cd-df4b-445f-9aaa-556931bff5f3" config-ref="HTTP_Listener_config" path="/postEmpDetails">
+			<http:error-response >
+				<http:body ><![CDATA[#[payload]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="7c7b4d29-bcd4-4209-9265-f3bf5e02b929" message="This is the logger for payload : #[payload]"/>
+		<foreach doc:name="For Each" doc:id="cb21df0e-14cc-48c8-be4d-8c2243e74389" collection="#[payload]">
+			<logger level="INFO" doc:name="Logger" doc:id="f34900e3-4262-47cf-9f36-fe4e1eb53851" message="inside for loop #[payload]" />
+			<flow-ref doc:name="Flow Reference" doc:id="53cbe961-8da9-48df-a017-e5d93a3fac3c" name="mule-25-db-testFlow2" />
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="a8576ccc-e16d-4718-b667-95f93b33ab07" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="e6f0c3d9-a4d2-4b88-ae14-d4367ed7ab7c" message="second logger after db call payload: -----#[payload]" />
+		
+	</flow>
+	<flow name="mule-25-db-testFlow2" doc:id="22a69b02-6368-45e6-b54c-edda26927515" >
+		<db:insert doc:name="Insert" doc:id="f81c12f8-e1a5-4998-8a33-f28a17f89bbe" config-ref="Database_Config" >
+			<db:sql ><![CDATA[#["INSERT INTO employeeDetails (empId,empName,empRole,empSalar,empCountry) VALUES 
+(:id,:name,:role,:sal,:country)"]]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{'id': payload.empId,'name': payload.empName, 'role': payload.empRole, 'sal': payload."emp_salary", 'country': payload."emp-country"}]]]></db:input-parameters>
+		</db:insert>
+	
+	</flow>
+	<error-handler name="mule-25-db-testError_Handler" doc:id="b988d752-97aa-452e-bc82-7c3739b344b3" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="7f118b55-d098-45fd-b955-9424fc6d626b" type="DB:BAD_SQL_SYNTAX">
+			<logger level="INFO" doc:name="Logger" doc:id="83579f71-ca7b-4b6f-99fd-8fc3c8b9ad1b" />
+			<ee:transform doc:name="Copy_of_Copy_of_Transform Message" doc:id="29c65cdd-01ef-45b0-9153-b80b745f656c" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Result": error.description
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-continue>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3009c8c3-6be0-4203-9f2a-defe0b42bafe" type="DB:CONNECTIVITY, DB:QUERY_EXECUTION">
+			<logger level="INFO" doc:name="Logger" doc:id="218f6147-3519-4dc8-82dd-75fc7c392e01" />
+			<ee:transform doc:name="Copy_of_Copy_of_Transform Message" doc:id="dfbcb216-415c-4f45-b4ff-8bb5a7bff5c6" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Result": error.description
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+	</error-handler>
+	<sub-flow name="mule-25-db-testSub_Flow" doc:id="bafd047e-3c62-4ef2-a1a5-d89db80cbad4" >
+		<try doc:name="Try" doc:id="b341acb9-90c0-4701-b60c-2ba34676b31d" >
+			<db:insert doc:name="Insert" doc:id="17aa53e0-1952-44e5-ad17-3a044574fa96" config-ref="Database_Config">
+			<db:sql><![CDATA[#["INSERT INTO employeeDetails (empId,empName,empRole,empSalar,empCountry) VALUES 
+(:id,:name,:role,:sal,:country)"]]]></db:sql>
+			<db:input-parameters><![CDATA[#[{'id': payload.empId,'name': payload.empName, 'role': payload.empRole, 'sal': payload."emp_salary", 'country': payload."emp-country"}]]]></db:input-parameters>
+		</db:insert>
+			<ee:transform doc:name="Transform Message" doc:id="c53f0a92-75db-4079-8eb4-bfa528062b38" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="751a5dcd-6160-437b-be7a-26a8fbb1492e" type="DB:CONNECTIVITY">
+					<ee:transform doc:name="Transform Message" doc:id="cf76ad59-5859-41c7-b9fa-a895fcb88601" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Result": error.description
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<logger level="INFO" doc:name="Logger" doc:id="f9967af8-598d-4c7e-a16a-a1fbfb92abad" />
+				</on-error-continue>
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="371e09b0-0b8d-4839-8975-fda59b397010" type="DB:BAD_SQL_SYNTAX">
+					<ee:transform doc:name="Transform Message" doc:id="087bb1d3-61a2-40f1-be3f-a3162598c971" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Result": error.description
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<logger level="INFO" doc:name="Logger" doc:id="cbaa5659-641d-414a-a294-ab4025a68e29" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<logger level="INFO" doc:name="Logger" doc:id="cd6e9dce-d0cc-4012-8739-06e289a75c2b" />
+	</sub-flow>
+</mule>
